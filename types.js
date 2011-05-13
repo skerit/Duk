@@ -161,11 +161,18 @@ Duk.Types.Pattern = {
 	 * Wether this is moveable
 	 * @type {Boolean}
 	 */
-	moveable: true
+	moveable: true,
+	
+	/**
+	 * Wether this is globally moveable (outside its parent)
+	 * @type	{Boolean}
+	 */
+	globalmove: false
 }
 
 /**
  * An instructions set extrapolated from a pattern
+ * Used for "ongoing" var
  * @typedef {Object}
  */
 Duk.Types.Patternuse = {
@@ -189,6 +196,9 @@ Duk.Types.Patternuse = {
 		"focusstyle": {
 			"fillstyle": "rgb(0,150,150)",
 			"borderstyle": "rgb(0,0,0)"
+		},
+		"hoverstyle": {
+			"fillstyle": "rgba(100,0,0,0.9)"
 		},
 		"blur": 5
 		},
@@ -230,6 +240,24 @@ Duk.Types.Patternuse = {
 	ay: 100,
 	
 	/**
+	 * The Z position (in microseconds)
+	 * @type	{Number}
+	 */
+	z: 0,
+	
+	/**
+	 * The absolute pixel this resides on
+	 * @type	{Number}
+	 */
+	apixel: 0,
+	
+	/**
+	 * The relative pixel this resides on
+	 * @type	{Number}
+	 */
+	rpixel: 0,
+	
+	/**
 	 * Wether this should register clicks or not
 	 * @type {Boolean}
 	 */
@@ -239,7 +267,25 @@ Duk.Types.Patternuse = {
 	 * Wether this is moveable
 	 * @type {Boolean}
 	 */
-	moveable: true
+	moveable: true,
+	
+	/**
+	 * Wether this is globally moveable (outside its parent)
+	 * @type	{Boolean}
+	 */
+	globalmove: false,
+	
+	/**
+	 * Does this widget have focus?
+	 * @type	{Boolean}
+	 */
+	focus: false,
+	
+	/**
+	 * Does this widget have hover?
+	 * @type	{Boolean}
+	 */
+	hover: false
 }
 
 /**
@@ -294,27 +340,39 @@ Duk.Types.Mouse = {
 		 * The widget the mouse is over
 		 * @type {Duk.Widget}
 		 */
-		over: {},
+		over: undefined,
 		
 		/**
 		 * The widget the mouse was over previously
 		 * @type {Duk.Widget}
 		 */
-		overPrevious: {},
+		overPrevious: undefined,
 		
 		/**
 		 * The widget the mouse clicked down on
 		 * @type {Duk.Widget}
 		 */
-		down: {},
+		down: undefined,
 		
 		/**
 		 * The widget where the mouse was released
 		 * @type {Duk.Widget}
 		 */
-		up: {}
+		up: undefined
 		
 	},
+	
+	/**
+	 * The rx pixel we clicked down on
+	 * @type	{Number}
+	 */
+	downpixelx: 0,
+	
+	/**
+	 * The ry pixel we clicked down on
+	 * @type	{Number}
+	 */
+	downpixely: 0,
 	
 	/**
 	 * The state of the object
@@ -327,12 +385,6 @@ Duk.Types.Mouse = {
 		 * @type {Boolean}
 		 */
 		focus: false,
-		
-		/**
-		 * Do we have hover?
-		 * @type {Boolean}
-		 */
-		hover: false,
 		
 		/**
 		 * Do we have a click down?

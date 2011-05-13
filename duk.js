@@ -38,7 +38,6 @@ var p = Penseel;
 function now(){	return p.now(); }
 
 /**
- * 
  * @classDescription	The duk
  * @param   {string}    canvasId    The ID of the canvas to use
  * @param   {string}    url         The url of the blueprint JSON to download
@@ -46,14 +45,28 @@ function now(){	return p.now(); }
  * @return	{Duk.Manager}			Returns the new Manager object 
  */
 Duk.Manager = function(canvasId, url, callback){
-
+	
+	/**
+	 * A reference for inner function to this
+	 */
+	var that = this;
+	
 	/**
 	 * A reference for subclasses
 	 */
 	this.me = this;
 	
-	/** @deprecated */
-	var that = this;
+	/**
+	 * Every widget mapped to its coordinates
+	 * @type	{Array.<Duk.Widget>}
+	 */
+	var widgetMap = [];
+	
+	/**
+	 * Create a reference to this array
+	 * @type	{Array.<Duk.Widget>}
+	 */
+	this.widgetMap = widgetMap;
 
 	/**
 	 * The canvaselement. Must be passed for blur() usage
@@ -66,6 +79,24 @@ Duk.Manager = function(canvasId, url, callback){
 	 * @type {Object}
 	 */
 	this.ctx = this.canvas.getContext('2d');
+	
+	/**
+	 * The manager also has an id: 0
+	 * @type	{Number}
+	 */
+	this.id = 0;
+	
+	/**
+	 * An object which contains IDs of all the widgets, and their references
+	 * @type	{Object}
+	 */
+	this.widgets = {};
+	
+	/**
+	 * The latest ID added
+	 * @type	{Number}
+	 */
+	this.idLast = 0;
 
 	// Store the image to use here
 	this.images = {};
@@ -100,36 +131,51 @@ Duk.Manager = function(canvasId, url, callback){
 	// Open dialogs
 	var openDialogs = [];
 	this.roots = openDialogs;
-	var openMap = [];
-	this.openMap = [];
+
 	var dirtyMap = true;
 	this.dirtyMap = true;
 
 	/**
-	 * Rebuild the openMap, a map for every pixel of the canvas where references
+	 * Rebuild the widgetMap, a map for every pixel of the canvas where references
 	 * are made to the dialog underneath them.
 	 * This is only rebuilt AFTER a dialog has been dropped, not while moving.
 	 * A dialog also has a rebuildMap function for its underlying widget, but
 	 * that should only be run once: at creation.
+	 * @deprecated
 	 */
-	this.rebuildMap = function(){
-		openMap = [];
+	this.rebuildMapOld = function(){
+		widgetMap = [];
 		
 		for(var i = 0; i < this.roots.length; i++){
+			
+			// What to do when the widget is over the edge?
+			if(that.dimensions.width < (openDialogs[i].dimensions.rx + openDialogs[i].dimensions.width) ){
+				var widthCorrection = ((openDialogs[i].dimensions.rx + openDialogs[i].dimensions.width) - that.dimensions.width) + 1;
+			} else {
+				var widthCorrection = 0;
+			}
+			
+			// What to do when the widget is over the edge height?
+			if(that.dimensions.height < (openDialogs[i].dimensions.ry + openDialogs[i].dimensions.height) ){
+				var heightCorrection = ((openDialogs[i].dimensions.ry + openDialogs[i].dimensions.height) - that.dimensions.height) + 1;
+			} else {
+				var heightCorrection = 0;
+			}
+			
 			x = openDialogs[i].dimensions.ax;
 			y = openDialogs[i].dimensions.ay;
-			width = openDialogs[i].dimensions.width;
-			height = openDialogs[i].dimensions.height;
+			width = openDialogs[i].dimensions.width - widthCorrection;
+			height = openDialogs[i].dimensions.height - heightCorrection;
 			maxwidth = x+width;
 			maxheight = y+height;
 
 			for(var ty = y; ty <= maxheight; ty++){
 				for(var tx = x; tx <= maxwidth; tx++){					
 					if(tx > 0 && ty > 0){
-						if(openMap[(ty * that.dimensions.width) + tx] === undefined){
-							openMap[(ty * that.dimensions.width) + tx] = [];
+						if(widgetMap[(ty * that.dimensions.width) + tx] === undefined){
+							widgetMap[(ty * that.dimensions.width) + tx] = [];
 						}
-						openMap[(ty * that.dimensions.width) + tx].push(openDialogs[i]);
+						widgetMap[(ty * that.dimensions.width) + tx].push(openDialogs[i]);
 					}
 				}
 			}
@@ -409,19 +455,29 @@ Duk.Manager = function(canvasId, url, callback){
 	 *  @param click	{bool}
 	 *  @returns	{object|boolean}		The layer we've clicked, or false if there's nothing there
 	 */
-	this.getDialog = function(x, y, click){
+	this.getWidget = function(x, y, click){
 		
 		var returnObject = false;
-		var pixel = (y * that.dimensions.width) + x;
 		
-		if(openMap[pixel] !== undefined) {
-			returnObject = openMap[pixel][0];
+		if(y === undefined) {
+			var pixel = x;
+		} else {
+			var pixel = (y * that.dimensions.width) + x;
+		}
+		
+		if(that.widgetMap[pixel] !== undefined) {
+			returnObject = that.widgetMap[pixel][0];
 			
 			if(click && returnObject){
 				// Calculate where we clicked the object
 				returnObject.calc.clickedX = x - returnObject.dimensions.ax;
 				returnObject.calc.clickedY = y - returnObject.dimensions.ay;
 			}
+		} else {
+			
+			// If we found nothing, we must be over the manager
+			// The same code CAN NOT be used in the widget's getWidget();
+			return that;
 		}
 		
 		return returnObject;
@@ -458,10 +514,14 @@ Duk.Manager = function(canvasId, url, callback){
 		that.mouse.x = e.pageX-this.offsetLeft;
 		that.mouse.y = e.pageY-this.offsetTop;
 		
+		that.cursor.setPosition(that.mouse.x, that.mouse.y);
+		
+		/**
 		// Send a mousemove to the dialog it's over
 		that.mouse.overDialog = that.getDialog(that.mouse.x, that.mouse.y);
 		if(that.mouse.overDialog){
 			that.mouse.overDialog.event.mousemove(that.mouse.x, that.mouse.y);
+			
 			that.mouse.overDialog.cursor.setPosition(that.mouse.x, that.mouse.y);
 		}
 		
@@ -470,7 +530,7 @@ Duk.Manager = function(canvasId, url, callback){
 		// Send a mousemove to the dialog we're dragging
 		if(that.mouse.down && that.mouse.dialogDown){
 			that.mouse.dialogDown.event.mousemove(that.mouse.x, that.mouse.y);
-		}
+		}*/
 		
 		/*
 		// If the mouse is pressed down while moving
@@ -505,6 +565,8 @@ Duk.Manager = function(canvasId, url, callback){
 
 	// Store the mouse position when pressing down a button
 	$('#'+canvasId).mousedown(function(e){
+		
+		that.cursor.setDown(true);
 
 		// The mouse has been pressed down
 		that.mouse.down = true;
@@ -517,13 +579,15 @@ Duk.Manager = function(canvasId, url, callback){
 		that.mouse.dialogUp = false;
 		
 		// Send the mousedown to the correct master dialog
-		that.mouse.dialogDown = that.getDialog(that.mouse.downx, that.mouse.downy, true);
+		that.mouse.dialogDown = that.getWidget(that.mouse.downx, that.mouse.downy, true);
 		if(that.mouse.dialogDown) that.mouse.dialogDown.event.mousedown(that.mouse.downx, that.mouse.downy);
 
 	});
 
 	// Store the mouse position when releasing (clicking) down a button
 	$('#'+canvasId).mouseup(function(e){
+		
+		that.cursor.setDown(false);
 		
 		// If something has changed to the position of a dialog, rebuild the map
 		if(dirtyMap) that.rebuildMap();
@@ -539,8 +603,8 @@ Duk.Manager = function(canvasId, url, callback){
 		that.mouse.dialogDown = false;
 		
 		// Send the mouseup to the correct master dialog
-		that.mouse.dialogUp = that.getDialog(that.mouse.upx, that.mouse.upy, true);
-		if(that.mouse.dialogUp) that.mouse.dialogUp.event.mouseup(that.mouse.upx, that.mouse.upy);
+		that.mouse.dialogUp = that.getWidget(that.cursor.apixel);
+		if(that.mouse.dialogUp && that.mouse.dialogUp !== that) that.mouse.dialogUp.event.mouseup(that.mouse.upx, that.mouse.upy);
 
 	});
 	
@@ -560,7 +624,7 @@ Duk.Manager = function(canvasId, url, callback){
  */
 Duk.Manager.prototype.openRoot = function(dimensions){
 	
-	var newRoot = new Duk.Widget(dimensions, this.blueprint.styles[dimensions['style']], this.me);
+	var newRoot = new Duk.Widget(dimensions, this.me);
 	this.roots.unshift(newRoot);
     
 	this.me.draw();
@@ -579,4 +643,80 @@ Duk.Manager.prototype.draw = function(){
 	}
 }
 
+/**
+ * Rebuild the widgetMap, a map for every pixel of the canvas where references
+ * are made to the dialog underneath them.
+ */
+Duk.Manager.prototype.rebuildMap = function(){
+	
+	// Empty the semi-global array
+	this.widgetMap = [];
+	
+	// Create our temporary array for sorting
+	var widgetZ = p.makeArray(this.widgets);
+	
+	// Sort the widgetZ array by its Z index
+	widgetZ.sort(Duk.compareWidgetZ);
+	
+	for(var wid in widgetZ){
+		
+		/**
+		 * @type	{Duk.Widget}
+		 */
+		var w = widgetZ[wid];
+		
+		// What to do when the widget is over the edge?
+		if(this.dimensions.width < (w.dimensions.ax + w.dimensions.width) ){
+			var widthCorrection = ((w.dimensions.ax + w.dimensions.width) - this.dimensions.width) + 1;
+		} else {
+			var widthCorrection = 0;
+		}
+		
+		// What to do when the widget is over the edge height?
+		if(this.dimensions.height < (w.dimensions.ay + w.dimensions.height) ){
+			var heightCorrection = ((w.dimensions.ay + w.dimensions.height) - this.dimensions.height) + 1;
+		} else {
+			var heightCorrection = 0;
+		}
+		
+		x = w.dimensions.ax;
+		y = w.dimensions.ay;
+		width = w.dimensions.width - widthCorrection;
+		height = w.dimensions.height - heightCorrection;
+		maxwidth = x+width;
+		maxheight = y+height;
 
+		for(var ty = y; ty <= maxheight; ty++){
+			for(var tx = x; tx <= maxwidth; tx++){					
+				if(tx > 0 && ty > 0){
+					if(this.widgetMap[(ty * this.dimensions.width) + tx] === undefined){
+						this.widgetMap[(ty * this.dimensions.width) + tx] = [];
+					}
+					this.widgetMap[(ty * this.dimensions.width) + tx].push(w);
+				}
+			}
+		}
+	}
+	
+	dirtyMap = false;
+}
+
+/**
+ * Get a widget by its ID
+ * @param	{Number}	id
+ * @returns	{Duk.Widget}
+ */
+Duk.Manager.prototype.getWidgetById = function(id){
+	
+	if(this.widgetMap[id]) return this.widgets[id];
+	else return false;
+}
+
+/**
+ * Sort function by a Widget's Z
+ * @param	{Duk.Widget}	a
+ * @param	{Duk.Widget}	b
+ */
+Duk.compareWidgetZ = function(a, b){
+	return a.dimensions.z - b.dimensions.z;
+}

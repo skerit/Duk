@@ -45,7 +45,7 @@ Penseel.dump = function(arr,level) {
 
 			if(typeof(value) == 'object') { //If it is an array,
 				dumped_text += level_padding + "'" + item + "' ...\n";
-				dumped_text += dump(value,level+1);
+				dumped_text += this.dump(value,level+1);
 			} else {
 				dumped_text += level_padding + "'" + item + "' => \"" + value + "\"\n";
 			}
@@ -92,6 +92,61 @@ Penseel.deepCopy = function(obj) {
 		
 		// Set the key by recursively applying another deepCopy
         retVal[key] = this.deepCopy(obj[key]);
+    }
+    return retVal;
+}
+
+/**
+ * Make a copy of an object, so we can use it regulary and not by reference,
+ * but only so many levels deep. (The rest will be by reference)
+ * @param    obj     {object}    The object you want to create a hard copy of
+ * @returns  {object}            The same object, but modifyable
+ */
+Penseel.shallowCopy = function(obj, depth) {
+	
+	// If it's not an object, return the original parameter
+    if (typeof obj !== "object" || !obj) return obj;
+
+    var retVal = new obj.constructor();
+	
+	var run = 0;
+	
+	// Loop through every key in the object
+    for (var key in obj) {
+		
+        if (!obj.hasOwnProperty(key)) continue;
+		
+		if(run < depth){
+			// Set the key by recursively applying another deepCopy
+			retVal[key] = this.deepCopy(obj[key]);
+		} else {
+			retVal[key] = obj[key];
+		}
+		
+		run++;
+    }
+    return retVal;
+}
+
+/**
+ * Turn an object into an array (very simple)
+ * @param    obj     {object}    The object you want to create a hard copy of
+ * @returns  {Array}             The array
+ */
+Penseel.makeArray = function(obj) {
+	
+	// If it's not an object, return the original parameter
+    if (typeof obj !== "object" || !obj) return obj;
+
+    var retVal = [];
+	
+	// Loop through every key in the object
+    for (var key in obj) {
+		
+        if (!obj.hasOwnProperty(key)) continue;
+		
+		retVal.push(obj[key]);
+
     }
     return retVal;
 }

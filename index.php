@@ -32,6 +32,7 @@
 		function newDialog(){
             r = d.openRoot(d.blueprint.screens.test);
             r.addWidget(d.blueprint.widgets.input)
+			r.addWidget(d.blueprint.widgets.drag)
 		}
 
 	</script>

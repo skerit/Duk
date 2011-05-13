@@ -2,11 +2,11 @@
 	"images": [
 		{
 			"name": "bordersmall",
-			"url": "images/bordersmall.png"}
+			"url": "http://kipdola.be/subdomain/kiflea/images/bordersmall.png"}
 	],
 	"styles": {
 		"transparant": {
-			"fillstyle": false,
+			"fillstyle": "rgba(112,112,112,0.5)",
 			"blur": 0
 		},
 		"widget": {
@@ -15,6 +15,9 @@
 			"borderstyle": "rgba(0,0,0)",
 			"focusstyle": {
 				"fillstyle": "rgb(150,150,0)"
+			},
+			"hoverstyle": {
+				"fillstyle": "rgba(100,0,0,0.9)"
 			}
 		},
 		"bordersmall": {
@@ -27,12 +30,15 @@
 						"bottomleft": {"sx": 2, "sy": 73, "width": 21, "height": 21, "repeatv": false, "repeath": false, "offset": [0,0,0,0], "stackh": "left"},
 						"bottommiddle": {"sx": 40, "sy": 73, "width": 20, "height": 20, "repeatv": false, "repeath": true, "offset": [0,21,0,0], "stackw": "topleft", "stackh": "left"},
 						"bottomright": {"sx": 71, "sy": 73, "width": 21, "height": 20, "repeatv": false, "repeath": false, "offset": [0,0,0,0], "stackw": "topmiddle", "stackh": "left"}
-			}   ,
+			},
 			"fillstyle": "rgba(20, 20, 20, 0.4)",
 			"focusstyle": {
-				"fillstyle": "rgba(100,100,100, 0.7)",
+				"fillstyle": "rgba(100,0,100, 0.7)",
 				"borderstyle": ""
 				},
+			"hoverstyle": {
+				"fillstyle": "rgba(100,0,0,0.9)"
+			},
 			"blur": 5
 			}
 		},
@@ -40,21 +46,33 @@
 		"input": {
 			"style": "widget",
 			"type": "input",
-			"width": "80%",
+			"width": "50%",
 			"height": "30",
 			"x": "10%",
 			"y": "15",
+			"moveable": false,
+			"clickable": true,
+			"globalmove": false
+		},
+		"drag": {
+			"style": "widget",
+			"type": "button",
+			"width": "50",
+			"height": "50",
+			"x": "70%",
+			"y": "70%",
 			"moveable": true,
-			"clickable": true
+			"clickable": true,
+			"globalmove": true
 		}
 	},
 	"screens": {
 		"test": {
 			"style": "bordersmall",
-			"width": "50%",
+			"width": "60%",
 			"height": "40%",
-			"x": "20%",
-			"y": "10%",
+			"x": "40%",
+			"y": "40%",
 			"clickable": true,
 			"moveable": true
 		},
@@ -76,6 +94,15 @@
 				{"widget": "textbox", "name": "test", "x": 10, "y": 26, "width": 120, "height": 15, "value": "Type here", "cursor": 9},
 				{"widget": "button", "name": "clickme", "x": 50, "y": 60, "width": 3, "height": 3}
 				]
-			}
+			},
+		"desktop": {
+			"style": "transparant",
+			"width": "100%",
+			"height": "100%",
+			"x": "0",
+			"y": "0",
+			"clickable": false,
+			"moveable": false
 		}
+	}
 }
