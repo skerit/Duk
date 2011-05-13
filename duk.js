@@ -33,24 +33,29 @@ var Duk = {};
  * @param   {string}    canvasId    The ID of the canvas to use
  * @param   {string}    url         The url of the blueprint JSON to download
  * @param   {string}    callback    The function to initialize when we downloaded everything
- * @return	{Duk.Manager}			Returns the new Manager object
- * @type	{Object}
- * @constructor
+ * @return	{Duk.Manager}			Returns the new Manager object 
  */
 Duk.Manager = function(canvasId, url, callback){
 
-    this.me = this;
+	/**
+	 * A reference for subclasses
+	 */
+	this.me = this;
+	
+	/** @deprecated */
 	var that = this;
-	this.canvasId = canvasId;
 
+	/**
+	 * The canvaselement. Must be passed for blur() usage
+	 * @type {Object}
+	 */
 	this.canvas = document.getElementById(canvasId);
 	
-	// Retrieve the canvas DOM node, this gives us access to its drawing functions
+	/**
+	 * Retrieve the canvas drawing functions
+	 * @type {Object}
+	 */
 	this.ctx = this.canvas.getContext('2d');
-
-	// Get the width and height of the element
-	this.width = this.canvas.width;
-	this.height = this.canvas.height;
 
 	// Store the image to use here
 	this.images = {};
@@ -89,6 +94,20 @@ Duk.Manager = function(canvasId, url, callback){
 	this.openMap = [];
 	var dirtyMap = true;
 	this.dirtyMap = true;
+
+	/**
+	 * The manager's instructions set
+	 * @type {Duk.Instructions}
+	 */
+	this.dimensions = new Duk.Instructions({
+			"style": null,
+			"width": this.canvas.width,
+			"height": this.canvas.height,
+			"x": 0,
+			"y": 0,
+			"clickable": true,
+			"moveable": false
+		});
 
 	/**
 	 * Rebuild the openMap, a map for every pixel of the canvas where references
@@ -163,7 +182,7 @@ Duk.Manager = function(canvasId, url, callback){
 
 			// Do this only if we've loaded every image:
 			if(loaded == toLoad) {
-				callback();
+				if(callback) callback();
 			}
 
 		});
@@ -315,8 +334,6 @@ Duk.Manager = function(canvasId, url, callback){
 		
 	}
 
-	
-
 	/**
 	 *  Get the dialog object by searching through the layers
 	 *  @param	x		{int}
@@ -397,6 +414,9 @@ Duk.Manager = function(canvasId, url, callback){
 
 				dialogObject.inst.x = x - dialogObject.calc.clickedX;
 				dialogObject.inst.y = y - dialogObject.calc.clickedY;
+				
+				dialogObject.dimensions.inst.x = x - dialogObject.calc.clickedX;
+				dialogObject.dimensions.inst.y = y - dialogObject.calc.clickedY;
 			}
 		}
 		
@@ -502,15 +522,17 @@ Duk.Manager = function(canvasId, url, callback){
 	// Start downloading needed files, and execute the callback when finished
 	this.getBlueprint(url, callback);
 	
-};
+}
 
 /**
  * Creates a new root dialog window.
- * @param {string} arg1 An argument that makes this more interesting.
- * @return {string} Some return value.
+ * @param   {object} 	dimensions		The dimension and layout instructions
+ * @return  {Duk.Widget}	            A new Duk.Widget instance
  */
 Duk.Manager.prototype.openRoot = function(dimensions){
-	var newRoot = new Widget(dimensions, null, this.me);
+	debugArray(dimensions);
+	
+	var newRoot = new Duk.Widget(dimensions, this.blueprint.styles[dimensions['style']], this.me);
 	this.roots.unshift(newRoot);
     
 	this.me.draw();
@@ -813,104 +835,309 @@ var key = {
 }
 
 /**
-* A widget class
-* @classDescription	Create a new widget
-* @param   {object|undefined}          parameters          An object with extra parameters
-* @param   {string|boolean|undefined}  windowStyle         The style to use, or false
-* @param   {int|string|undefined}      x                   The wanted starting x position of the widget
-* @param   {int|string|undefined}      y                   The wanted starting y position of the widget
-* @param   {int|string}                width               The wanted width of the widget
-* @param   {int|string}                height              The wanted height of the widget
-* @return	{Duk.Widget}				Returns the new Widget object
-* @type	{Object}
-* @constructor
-*/
-var Widget = function(parameters, windowStyles, that, x, y, width, height) {
-//var Widget = function(parameters, root, style, parent) {
-    //var Widget = function(parameters, windowStyles, that, x, y, width, height) {
-    
-   /**
-	* A reference to this function
-	* @type this
-	*/
-   var me = this;
-		   
-   this.ischild = parameters.widget ? true : false;
+ * The Instructions class
+ * @param	{Object}          	plan		Plan for position and dimension
+ * @param	{Duk.Instructions} 	[parent]		This widget's parent's instructions
+ * @return	{Duk.Instructions}			Returns the new instructions object
+ */
+Duk.Instructions = function(plan, parent){
 
+	/**
+	* Collection of the instructions by which the dimensions will be calculated
+	* @type object
+	*/
+	this.inst = {};
+	
+	/**
+	 * The instructions by which we'll calculate the x position
+	 * @type {string|number}
+	 * @example 10
+	 * @example 10%
+	 */
+	this.inst.x = plan.x ? plan.x : 0;
+	
+	/**
+	* The instructions by which we'll calculate the y position
+	* @type {string|number}
+	*/
+	this.inst.y = plan.y ? plan.y : 0;
+	
+	/**
+	* The instructions by which we'll calculate the width of the widget
+	* @type {string|number}
+	*/
+	this.inst.width = plan.width ? plan.width : 0;
+	
+	/**
+	* The instructions by which we'll calculate the height of the widget
+	* @type {string|number}
+	*/
+	this.inst.height = plan.height ? plan.height : 0;
+	this.inst.style = plan.style ? plan.style : null;
+	this.inst.blur = plan.blur ? plan.blur : 4;
+	
+	/**
+	* The original instructions
+	* @type object
+	*/
+	this.original = this.inst;
+	
+	/**
+	 * Some private variables used for calculation
+	 * @type {object}
+	 */
+	var calc = {};
+	
+	/**
+	 * Storage for previously calculated properties
+	 * @type {object}
+	 */
+	calc.previous = {};
+	
+	/**
+	 * The previous calculated relative x position
+	 * @type {number}
+	 */
+	calc.previous.rx = 0;
+	
+	/**
+	 * The previous calculated absolute x position
+	 * @type {number}
+	 */
+	calc.previous.ax = 0;
+	
+	/**
+	 * The widget's relative x position to its parent
+	 * @type {Number}
+	 */
+	calc.rx = 0;
+
+	/**
+	 * The widget's absolute x position on the manager
+	 * @type {Number}
+	 */
+	calc.ax = 0;
+	
+	/**
+	 * The widget's relative y position to its parent
+	 * @type {Number}
+	 */
+	calc.ry = 0;
+
+	/**
+	 * The widget's absolute y position on the manager
+	 * @type {Number}
+	 */
+	calc.ay = 0;
+
+	/**
+	 * The widget's width
+	 * @type {Number}
+	 */
+	this.width = 0;
+	
+	/**
+	 * The widget's height
+	 * @type {Number}
+	 */
+	this.height = 0;
+	
+	/**
+	 * The parent instructions set
+	 * @type {Duk.Instructions}
+	 */
+	this.parent = parent;
+	
+	/**
+	 * If this instructions does not have a parent, it's the manager.
+	 * The manager is not a widget, but does have an instructions object
+	 * to ease coding
+	 */
+	if(!this.parent) {
+	
+	
+	}
+
+	/**
+	 * Return the calculated rx
+	 */
+	this.__defineGetter__("rx", function(){
+	
+	    // Calculate the x and y if they're percentages
+	    if(typeof(this.inst.x) == 'string' && this.inst.x.indexOf('%') > 0) {
+		    xextra = 0;
+		    
+		    calc.rx = (this.parent.width * (parseInt(this.inst.x.replace('%', '')) / 100)) - xextra;
+	    } else { // They're not percentages, so get their value
+		    calc.rx = parseInt(this.inst.x);
+	    }
+	    
+	    return calc.rx;
+	});
+   
+   /**
+    * Return the calculated ax
+    */
+    this.__defineGetter__("ax", function(){
+		calc.ax = this.rx + parent.rx;
+		return calc.ax;
+    });
+	
+	/**
+	 * Return the calculated ry
+	 */
+	this.__defineGetter__("ry", function(){
+	
+	    // Calculate if it's a percentage
+	    if(typeof(this.inst.y) == 'string' && this.inst.y.indexOf('%') > 0) {
+		    yextra = 0;
+		    
+		    calc.ry = (this.parent.height * (parseInt(this.inst.y.replace('%', '')) / 100)) - yextra;
+	    } else { // They're not percentages, so get their value
+		    calc.ry = parseInt(this.inst.y);
+	    }
+	    
+	    return calc.ry;
+	});
+   
+	/**
+	 * Return the calculated ay
+	 */
+	this.__defineGetter__("ay", function(){
+		calc.ay = this.ry + parent.ry;
+		return calc.ay;
+	});
+	
+	/**
+	 * Return the calculated width
+	 */
+	this.__defineGetter__("width", function(){
+		if(this.inst.width.indexOf('%') > 0) calc.width = this.parent.width * (parseInt(this.inst.width.replace('%', '')) / 100);
+		return calc.width;
+	});
+	
+	/**
+	 * Return the calculated width
+	 */
+	this.__defineGetter__("width", function(){
+		if(this.inst.height.indexOf('%') > 0) calc.height = this.parent.height * (parseInt(this.inst.height.replace('%', '')) / 100);
+		return calc.width;
+	});
+   
+   /**
+    * For some reason, Komdo can't autocomplete these classes when they don't
+    * contain a function. So we'll make an empty one, that gets deleted at
+    * compile anyway
+    */
+   this._workaround = function(){};
+   
+}
+
+/**
+ * The Duk Widget class
+ * @param	{object|undefined}          parameters		An object with extra parameters
+ * @param	{string|boolean|undefined}  style			The style to use, or false
+ * @param	{Duk.Manager}				manager			The main manager instance
+ * @param	{Duk.Widget}				root            The root widget, aka "dialog"
+ * @param	{Duk.Widget}      			parent          The parent widget
+ * @return	{Duk.Widget}				Returns the new Widget object
+ */
+Duk.Widget = function(parameters, style, manager, root, parent) {
+	
+	var me = this;
+	
+	/**
+	* A reference to this function
+	* @type {Duk.Widget}
+	*/
+	this.me = this;
+	
+	this.ischild = parameters.widget ? true : false;
+	
+	/**
+	* The calculations of the dimensions (based on this.inst instructions
+	*/
+	this.calc = {};
+	
+	/**
+	 * The z-layer of this widget. Smaller is higher
+	 * @type number
+	 */
+	this.z = 0;
+	 
+	this.ztime = now();     // When the z-layer was last changed
+	this.type = parameters.type;	
+   
+   /**
+	* The parent of this widget (if it exists)
+	* @type {Duk.Widget|null}
+	*/
+   this.parent = parent ? parent : {};
+   
+	/**
+	* The top parent of this widget (if it exists)
+	* @type {Duk.Widget|null}
+	*/
+   this.root = root ? root : null;
+   
+   /**
+	* Are we a widget, a child of a dialog?
+	*/
+   this.isChild = parent ? true : false;
+		   
+   if(!this.isChild){
+	   this.parent.width = manager.dimensions.width;
+	   this.parent.height = manager.dimensions.height;
+   }
+   
+   /**
+	* Our children widgets
+	* @type {Array.<Duk.Widget>}
+	*/
+   this.widgets = [];
+   
+
+   this.textblock = false;	// Store the textblock in here after the first calculation
+
+   // Get the basic instructions from the parameters if they exist there
+   
    /**
 	* The instructions by which the dimensions will be calculated
 	* @type object
 	*/
    this.inst = {};
-		   
+
+	var temp = parent ? parent.dimensions : manager.dimensions;
    /**
-	* The calculations of the dimensions (based on this.inst instructions
+	*@type {Duk.Instructions}
 	*/
-   this.calc = {};
-		   
-   /**
-	* The z-layer of this widget. Smaller is higher
-	* @type number
-	*/
-   this.z = 0;
-		   
-   this.ztime = now();     // When the z-layer was last changed
-   this.type = parameters.type;
-		   
-   
-   var z = {};
+   this.dimensions = new Duk.Instructions(parameters, temp);
+	echo('This rx: ' + this.dimensions.rx);
 
    /**
-	* Some test
-	* @type number
+	* The instructions by which we'll calculate the x position
+	* @type {string|number}
+	* @example 10
+	* @example 10%
 	*/
-   z.test = 1;
-
-
-   //me.parent = Duk.Widget();
-   
-   /**
-	* @type {Widget}
-	*/
-   this.parent = {};
-   
-   /**
-	* @type {Duk.Widget}
-	*/
-   //this.test = that.Widget();
-   
-   
-   
-   /*
-	* @see Widget
-	*/
-   this.www = {};
-   
-   
-		   
-   if(parameters.widget){
-	   this.ischild = true;
-	   this.parent = parameters.parent;
-   } else {
-	   this.ischild = false;
-	   this.parent.width = that.width;
-	   this.parent.height = that.height;
-   }
-
-   this.echo = function(message){
-	   echo(' DIALOG says: ' + message);
-   }
-   
-   this.widgets = [];
-   
-   // Test
-   this.value = '';
-   this.textblock = false;	// Store the textblock in here after the first calculation
-
-   // Get the basic instructions from the parameters if they exist there
    this.inst.x = parameters.x ? parameters.x : x;
+   
+   /**
+	* The instructions by which we'll calculate the y position
+	* @type {string|number}
+	*/
    this.inst.y = parameters.y ? parameters.y : y;
+   
+   /**
+	* The instructions by which we'll calculate the width of the widget
+	* @type {string|number}
+	*/
    this.inst.width = parameters.width ? parameters.width : width;
+
+   /**
+	* The instructions by which we'll calculate the height of the widget
+	* @type {string|number}
+	*/
    this.inst.height = parameters.height ? parameters.height : height;
    this.inst.style = parameters.style ? parameters.style : windowStyles;
    this.inst.blur = parameters.blur ? parameters.blur : 4;
@@ -959,11 +1186,11 @@ var Widget = function(parameters, windowStyles, that, x, y, width, height) {
 
    // Store the windowStyles
    if(typeof(this.inst.style) == "array") {
-	   for(var style in this.inst.style){
-		   if(that.blueprint.styles[this.inst.style[style]] !== undefined) merge(this.calc.style, that.blueprint.styles[this.inst.style[style]]);
+	   for(var tstyle in this.inst.style){
+		   if(manager.blueprint.styles[this.inst.style[tstyle]] !== undefined) merge(this.calc.style, manager.blueprint.styles[this.inst.style[tstyle]]);
 	   }
    } else {
-	   this.calc.style = that.blueprint.styles[this.inst.style] !== undefined ? deepCopy(that.blueprint.styles[this.inst.style]) : false;
+	   this.calc.style = manager.blueprint.styles[this.inst.style] !== undefined ? deepCopy(manager.blueprint.styles[this.inst.style]) : false;
    }
 
    // A dialog window is always clickable, unless otherwise defined in the parameters
@@ -978,10 +1205,10 @@ var Widget = function(parameters, windowStyles, that, x, y, width, height) {
 	   deep['parent'] = me.calc;
 	   
 	   //var temp = new that.Widget(deep);
-	   var temp = new Widget(deep, null, that);
+	   var temp = new Duk.Widget(deep, null, manager, root, me);
 	   me.widgets.unshift(temp);
 	   me.rebuildMap();
-	   that.draw();
+	   manager.draw();
 
    }
 
@@ -991,6 +1218,7 @@ var Widget = function(parameters, windowStyles, that, x, y, width, height) {
 	* @memberOf Widget
 	*/
    this.draw = function() {
+	echo('This rx: ' + this.dimensions.rx);
 	   me.recalculate();
 	   me.blur();
 	   me.decorate();
@@ -1010,17 +1238,17 @@ var Widget = function(parameters, windowStyles, that, x, y, width, height) {
 		   bx = parseInt(me.calc.x) + 4;
 		   by = parseInt(me.calc.y) + 4;
 		   
-		   that.ctx.fillStyle = 'rgb(0,0,0)';
-		   that.ctx.font = "15pt 'Lucida Console', Monaco, monospace";
-		   that.ctx.textBaseline = "top";
+		   manager.ctx.fillStyle = 'rgb(0,0,0)';
+		   manager.ctx.font = "15pt 'Lucida Console', Monaco, monospace";
+		   manager.ctx.textBaseline = "top";
 
-		   that.ctx.fillText(me.textblock.view, bx, by);
+		   manager.ctx.fillText(me.textblock.view, bx, by);
 		   
-		   that.ctx.beginPath();
-		   that.ctx.moveTo(bx + me.textblock.cursorpixel, by);
-		   that.ctx.lineTo(bx + me.textblock.cursorpixel, by + me.textblock.height - 4);
-		   that.ctx.closePath();
-		   that.ctx.stroke();
+		   manager.ctx.beginPath();
+		   manager.ctx.moveTo(bx + me.textblock.cursorpixel, by);
+		   manager.ctx.lineTo(bx + me.textblock.cursorpixel, by + me.textblock.height - 4);
+		   manager.ctx.closePath();
+		   manager.ctx.stroke();
 		   
 
 	   }
@@ -1067,6 +1295,7 @@ var Widget = function(parameters, windowStyles, that, x, y, width, height) {
 	   me.calc.height = me.inst.height;
 	   me.calc.x = me.inst.x;
 	   me.calc.y = me.inst.y;
+	   echo(me.inst.x);
 	   
 	   // Calculate the width and height if they're percentages
 	   if(me.calc.width.indexOf('%') > 0) me.calc.width = me.parent.width * (parseInt(me.calc.width.replace('%', '')) / 100);
@@ -1112,15 +1341,15 @@ var Widget = function(parameters, windowStyles, that, x, y, width, height) {
 	   }
 	   
 	   // Set the textblock on first calculation
-	   if(!me.textblock) me.textblock = new that.Textblock('15pt Monospace', 'rgb(0,0,0)', me.calc.width, me.calc.height);
+	   if(!me.textblock) me.textblock = new manager.Textblock('15pt Monospace', 'rgb(0,0,0)', me.calc.width, me.calc.height);
 	   
    }
 
    // Blur the background if it's wanted
    this.blur = function() {
 	   if(me.calc.style.blur && !me.ischild){
-		   var result = blurCanvas(that.canvas, me.calc.x, me.calc.y, me.calc.width, me.calc.height, me.inst.blur, me.parent.width,  me.parent.height);
-		   that.ctx.drawImage(result.element, result.x, result.y);
+		   var result = blurCanvas(manager.canvas, me.calc.x, me.calc.y, me.calc.width, me.calc.height, me.inst.blur, me.parent.width,  me.parent.height);
+		   manager.ctx.drawImage(result.element, result.x, result.y);
 	   }
    }
 
@@ -1133,17 +1362,17 @@ var Widget = function(parameters, windowStyles, that, x, y, width, height) {
 	   // Draw the background rectangle
 	   if(dialog.fillstyle) {
 		   if(dialog.bottomfill){
-			   that.ctx.fillStyle = dialog.bottomfill;
-			   that.ctx.fillRect(me.calc.x+1, me.calc.y+1, me.calc.width-2, me.calc.height-2);
+			   manager.ctx.fillStyle = dialog.bottomfill;
+			   manager.ctx.fillRect(me.calc.x+1, me.calc.y+1, me.calc.width-2, me.calc.height-2);
 		   }
-		   that.ctx.fillStyle = dialog.fillstyle;
-		   that.ctx.fillRect(me.calc.x+1, me.calc.y+1, me.calc.width-2, me.calc.height-2);
+		   manager.ctx.fillStyle = dialog.fillstyle;
+		   manager.ctx.fillRect(me.calc.x+1, me.calc.y+1, me.calc.width-2, me.calc.height-2);
 	   }
 	   
 	   // Draw the border if there is one
 	   if(dialog.borderstyle) {
-		   that.ctx.strokeStyle = dialog.borderstyle;
-		   that.ctx.strokeRect(me.calc.x+1, me.calc.y+1, me.calc.width-2, me.calc.height-2)
+		   manager.ctx.strokeStyle = dialog.borderstyle;
+		   manager.ctx.strokeRect(me.calc.x+1, me.calc.y+1, me.calc.width-2, me.calc.height-2)
 	   }
 
 	   // Render every layer
@@ -1188,8 +1417,8 @@ var Widget = function(parameters, windowStyles, that, x, y, width, height) {
 			   dx = me.calc.x + (d.repeatx * d.width) + d.offsetleft;
 			   dy = me.calc.y + (d.repeaty * d.height) + d.offsettop;
 
-			   that.ctx.drawImage(                // Draw to the buffer
-					that.images[dialog['tileset']]['image'],       // The image to use
+			   manager.ctx.drawImage(                // Draw to the buffer
+					manager.images[dialog['tileset']]['image'],       // The image to use
 					dialog.layers[layer]['sx'],               // The source x on the image
 					dialog.layers[layer]['sy'],               // The source y on the image
 					d.useWidth,             // The source width
@@ -1291,7 +1520,7 @@ var Widget = function(parameters, windowStyles, that, x, y, width, height) {
 		   if(me.widgetMap[me.mouse.pixel] !== undefined) {
 			   me.widgetMap[me.mouse.pixel][0].event.mousemove(me.mouse.x, me.mouse.y);
 		   } else {
-			   if(that.mouse.down && !me.mouse.dialogDown) that.moveDialog(that.mouse.dialogDown, that.mouse.x, that.mouse.y);
+			   if(manager.mouse.down && !me.mouse.dialogDown) manager.moveDialog(manager.mouse.dialogDown, manager.mouse.x, manager.mouse.y);
 		   }
 		   
 		   if(me.mouse.overexitDialog !== me.mouse.overDialog) {
@@ -1312,7 +1541,7 @@ var Widget = function(parameters, windowStyles, that, x, y, width, height) {
    this.event.hoverlost = function() {
 	   if(!me.focus) {
 		   me.calc.style.fillstyle = me.ocalc.style.fillstyle;
-		   that.draw();
+		   manager.draw();
 	   } else {
 		   
 	   }
@@ -1321,7 +1550,7 @@ var Widget = function(parameters, windowStyles, that, x, y, width, height) {
    this.event.hover = function() {
 	   if(!me.focus){
 		   me.calc.style.fillstyle = 'rgba(255,0,0, 0.5)';
-		   that.draw();
+		   manager.draw();
 	   } else {
 		   
 	   }
@@ -1336,12 +1565,12 @@ var Widget = function(parameters, windowStyles, that, x, y, width, height) {
 	   me.focus = false;
 	   
 	   // Reset the focusWidget
-	   that.focusWidget = false;
+	   manager.focusWidget = false;
 	   
 	   // Send the focuslost signal to my widget that has focus
 	   if(me.focusWidget) me.focusWidget.event.focuslost();
 	   
-	   that.draw();
+	   manager.draw();
    }
    
    this.event.focus = function() {
@@ -1351,10 +1580,10 @@ var Widget = function(parameters, windowStyles, that, x, y, width, height) {
 		   me.focus = true;
 		   
 		   // Only 1 thing can ever have focus, set that
-		   that.focusWidget = me;
+		   manager.focusWidget = me;
 	   }
 	   
-	   that.draw();
+	   manager.draw();
    }
    
    this.event.mousedown = function(x, y){
@@ -1377,15 +1606,15 @@ var Widget = function(parameters, windowStyles, that, x, y, width, height) {
 	   me.mouse.uppixel = (me.mouse.upy * me.calc.width) + me.mouse.upx;
 	   
 	   // Store the previous focused dialog
-	   that.focusexitDialog = that.focusDialog;
+	   manager.focusexitDialog = manager.focusDialog;
 	   
 	   // If this isn't a child, make me the curent dialog
-	   if(!me.ischild) that.focusDialog = me;
+	   if(!me.ischild) manager.focusDialog = me;
 	   
 	   // If the previous focussed dialog is different from the current
 	   // focussed dialog, send the focuslost event
-	   if(that.focusexitDialog != that.focusDialog){
-		   if(that.focusexitDialog) that.focusexitDialog.event.focuslost();
+	   if(manager.focusexitDialog != manager.focusDialog){
+		   if(manager.focusexitDialog) manager.focusexitDialog.event.focuslost();
 	   }
 	   
 	   // Whatever I am, give me focus
