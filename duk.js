@@ -22,85 +22,74 @@ function cut(str, cutStart, cutEnd){
   return str.substr(0,cutStart) + str.substr(cutEnd+1);
 }
 
+/**
+ * @namespace Holds the Duk functions and classes
+ */
+var Duk = {};
 
 /**
- * The duk namespace object
- * @constructor
+ * 
+ * @classDescription	The duk
  * @param   {string}    canvasId    The ID of the canvas to use
  * @param   {string}    url         The url of the blueprint JSON to download
  * @param   {string}    callback    The function to initialize when we downloaded everything
+ * @return	{Duk.Manager}			Returns the new Manager object
+ * @type	{Object}
+ * @constructor
  */
-var Duk = function(canvasId, url, callback){
+Duk.Manager = function(canvasId, url, callback){
 
+    this.me = this;
 	var that = this;
-	that.canvasId = canvasId;
+	this.canvasId = canvasId;
 
-	that.canvas = document.getElementById(canvasId);
-
+	this.canvas = document.getElementById(canvasId);
+	
 	// Retrieve the canvas DOM node, this gives us access to its drawing functions
-	that.ctx = that.canvas.getContext('2d');
+	this.ctx = this.canvas.getContext('2d');
 
 	// Get the width and height of the element
-	that.width = that.canvas.width;
-	that.height = that.canvas.height;
+	this.width = this.canvas.width;
+	this.height = this.canvas.height;
 
 	// Store the image to use here
-	that.images = {};
-	that.blueprint = {};
+	this.images = {};
+	this.blueprint = {};
 
 	var toLoad = 0;
 	var loaded = 0;
-	that.loaded = false;
+	this.loaded = false;
 
 	// Mouse settings
-	that.mouse = {};
-	that.mouse.x = 0;               // Where is the cursor now?
-	that.mouse.y = 0;               // Where is the cursor now?
-	that.mouse.down = false;        // Is the mouse pressed down?
-	that.mouse.downx = 0;           // Where was the mouse pressed down?
-	that.mouse.downy = 0;           // Where was the mouse pressed down?
-	that.mouse.upx = 0;             // Where was the mouse last released?
-	that.mouse.upy = 0;             // Where was the mouse last released?
-	that.mouse.dialogDown = false;  // The dialog window we have under our cursor when pressing down
-	that.mouse.dialogUp = false;    // The dialog window we have under our cursor when releasing the mouse button
-	that.mouse.underType;           // What is beneath the mouse now?
-	that.mouse.focus = false;       // What has focus right now?
+	this.mouse = {};
+	this.mouse.x = 0;               // Where is the cursor now?
+	this.mouse.y = 0;               // Where is the cursor now?
+	this.mouse.down = false;        // Is the mouse pressed down?
+	this.mouse.downx = 0;           // Where was the mouse pressed down?
+	this.mouse.downy = 0;           // Where was the mouse pressed down?
+	this.mouse.upx = 0;             // Where was the mouse last released?
+	this.mouse.upy = 0;             // Where was the mouse last released?
+	this.mouse.dialogDown = false;  // The dialog window we have under our cursor when pressing down
+	this.mouse.dialogUp = false;    // The dialog window we have under our cursor when releasing the mouse button
+	this.mouse.underType;           // What is beneath the mouse now?
+	this.mouse.focus = false;       // What has focus right now?
 	
-	that.mouse.overexitDialog = {};
-	that.mouse.overDialog = {};
+	this.mouse.overexitDialog = {};
+	this.mouse.overDialog = {};
 	
-	that.mouse.focusexitDialog = {};
-	that.mouse.focusDialog = {};
-	that.focusWidget = {};
-	that.focusexitWidget = {};
+	this.mouse.focusexitDialog = {};
+	this.mouse.focusDialog = {};
+	this.focusWidget = {};
+	this.focusexitWidget = {};
 
 	// Open dialogs
 	var openDialogs = [];
+	this.roots = openDialogs;
 	var openMap = [];
+	this.openMap = [];
 	var dirtyMap = true;
+	this.dirtyMap = true;
 
-	/**
-	 * Open a new dialog window
-	 */
-	that.openDialog = function(object){
-		var temp = new that.Widget(object);
-		openDialogs.unshift(temp);
-		that.draw();
-		that.rebuildMap();
-		return temp;
-	}
-
-	/**
-	 * Draw all open dialog windows
-	 */
-	that.draw = function(){
-		that.ctx.clearRect(0,0,that.width, that.height);
-		for(var i = 0; i < openDialogs.length; i++){
-			openDialogs[i].draw();
-		}
-		
-	}
-	
 	/**
 	 * Rebuild the openMap, a map for every pixel of the canvas where references
 	 * are made to the dialog underneath them.
@@ -108,10 +97,10 @@ var Duk = function(canvasId, url, callback){
 	 * A dialog also has a rebuildMap function for its underlying widget, but
 	 * that should only be run once: at creation.
 	 */
-	that.rebuildMap = function(){
+	this.rebuildMap = function(){
 		openMap = [];
 		
-		for(var i = 0; i < openDialogs.length; i++){
+		for(var i = 0; i < this.roots.length; i++){
 			x = openDialogs[i].calc.x;
 			y = openDialogs[i].calc.y;
 			width = openDialogs[i].calc.width;
@@ -137,7 +126,7 @@ var Duk = function(canvasId, url, callback){
 	/**
 	 *  Load the JSON blueprint
 	 */
-	that.getBlueprint = function(url, callback){
+	this.getBlueprint = function(url, callback){
 		$.getJSON(url, function(data) {
 			that.blueprint = data;
 
@@ -158,7 +147,7 @@ var Duk = function(canvasId, url, callback){
 	 * @param    name         {string}    The name of the tileset
 	 * @param   {string}    callback    The function to initialize when we downloaded everything
 	 */
-	that.getImage = function(url, name, callback) {
+	this.getImage = function(url, name, callback) {
 
 		// Create a new image variable where we'll load the image in.
 		var img = new Image();
@@ -187,7 +176,7 @@ var Duk = function(canvasId, url, callback){
 	 * A textblock class
 	 * @constructor
 	 */
-	that.Textblock = function(font, fillstyle, width, height){
+	this.Textblock = function(font, fillstyle, width, height){
 		
 		var t = this;
 		
@@ -325,563 +314,8 @@ var Duk = function(canvasId, url, callback){
 		}
 		
 	}
+
 	
-	/**
-	 * A widget class
-	 * @constructor
-	 * @param   {object|undefined}          parameters          An object with extra parameters
-	 * @param   {string|boolean|undefined}  windowStyle         The style to use, or false
-	 * @param   {int|string|undefined}      x                   The wanted starting x position of the widget
-	 * @param   {int|string|undefined}      y                   The wanted starting y position of the widget
-	 * @param   {int|string}                width               The wanted width of the widget
-	 * @param   {int|string}                height              The wanted height of the widget
-	 */
-	that.Widget = function(parameters, windowStyles, x, y, width, height) {
-		
-		var me = this;
-		me.ischild = parameters.widget ? true : false;
-
-		me.inst = {};         // Store the original instructions in here
-		me.calc = {};         // Store the calculations of every draw in here
-		me.z = 0;             // The z-layer
-		me.ztime = now();     // When the z-layer was last changed
-		me.type = parameters.type;
-		
-		me.parent = {}
-		
-		if(parameters.widget){
-			me.ischild = true;
-			me.parent = parameters.parent;
-		} else {
-			me.ischild = false;
-			me.parent.width = that.width;
-			me.parent.height = that.height;
-		}
-		
-		me.echo = function(message){
-			echo(' DIALOG says: ' + message);
-		}
-		
-		me.widgets = [];
-		
-		// Test
-		me.value = '';
-		me.textblock = false;	// Store the textblock in here after the first calculation
-
-		// Get the basic instructions from the parameters if they exist there
-		me.inst.x = parameters.x ? parameters.x : x;
-		me.inst.y = parameters.y ? parameters.y : y;
-		me.inst.width = parameters.width ? parameters.width : width;
-		me.inst.height = parameters.height ? parameters.height : height;
-		me.inst.style = parameters.style ? parameters.style : windowStyles;
-		me.inst.blur = parameters.blur ? parameters.blur : 4;
-
-		// Calculated info
-		me.calc.style = {};
-		me.calc.width = me.inst.width;
-		me.calc.height = me.inst.height;
-		me.calc.x = me.inst.x;
-		me.calc.y = me.inst.y;
-		me.calc.clickedX = 0;
-		me.calc.clickedY = 0;
-		me.ocalc = false;
-		
-		// Relative positions to the parent
-		me.calc.rx = 0;
-		me.calc.ry = 0;
-		
-		me.focus = false;
-		me.focusWidget = false;			// The child widget that has focus will be stored here
-		me.focusexitWidget = false;		// The previous child widget will be stored here
-		
-		// Mouse position RELATIVE to the dialog.
-		me.mouse = {}
-		me.mouse.x = 0;
-		me.mouse.y = 0;
-		me.mouse.pixel = 0;
-		me.mouse.downx = 0;
-		me.mouse.downy = 0;
-		me.mouse.downpixel = 0;
-		me.mouse.upx = 0;
-		me.mouse.upy = 0;
-		me.mouse.uppixel = 0;
-		me.mouse.down = false;
-		me.mouse.up = true;
-		
-		me.mouse.overDialog = false;
-		me.mouse.overexitDialog = false;
-		me.mouse.dialogDown = false;
-		me.mouse.dialogUp = false;
-		
-		me.mouse.focusDialog = false;
-		me.mouse.focusexitDialog = false;
-		
-		me.widgetMap = [];
-
-		// Store the windowStyles
-		if(typeof(me.inst.style) == "array") {
-			for(var style in me.inst.style){
-				if(that.blueprint.styles[me.inst.style[style]] !== undefined) merge(me.calc.style, that.blueprint.styles[me.inst.style[style]]);
-			}
-		} else {
-			me.calc.style = that.blueprint.styles[me.inst.style] !== undefined ? deepCopy(that.blueprint.styles[me.inst.style]) : false;
-		}
-
-		// A dialog window is always clickable, unless otherwise defined in the parameters
-		me.inst.clickable = parameters.clickable === undefined ? true : parameters.clickable;
-
-		// A dialog window is always moveable, unless otherwise defined in the parameters
-		me.inst.moveable = parameters.moveable === undefined ? true : parameters.moveable;
-		
-		// Adding a dialog widget
-		me.addWidget = function(parameters) {
-			deep = deepCopy(merge(parameters, {'widget': true}));
-			deep['parent'] = me.calc;
-			
-			var temp = new that.Widget(deep);
-			me.widgets.unshift(temp);
-			me.rebuildMap();
-			that.draw();
-
-		}
-
-		// Draw the entire thing
-		me.draw = function() {
-			me.recalculate();
-			me.blur();
-			me.decorate();
-			me.populate();
-			
-			// Draw widgets
-			for(var i = 0; i < me.widgets.length; i++){
-				me.widgets[i].draw();
-			}
-		}
-		
-		/**
-		 * Populate the widgets with values and such
-		 */
-		me.populate = function() {
-			if(me.type == 'input' && me.textblock) {
-				bx = parseInt(me.calc.x) + 4;
-				by = parseInt(me.calc.y) + 4;
-				
-				that.ctx.fillStyle = 'rgb(0,0,0)';
-				that.ctx.font = "15pt 'Lucida Console', Monaco, monospace";
-				that.ctx.textBaseline = "top";
-
-				that.ctx.fillText(me.textblock.view, bx, by);
-				
-				that.ctx.beginPath();
-				that.ctx.moveTo(bx + me.textblock.cursorpixel, by);
-				that.ctx.lineTo(bx + me.textblock.cursorpixel, by + me.textblock.height - 4);
-				that.ctx.closePath();
-				that.ctx.stroke();
-				
-
-			}
-		}
-		
-		/**
-		 * Build the widgetMap. Should only be run at creation since widget's
-		 * don't normally change position INSIDE the dialog
-		 */
-		me.rebuildMap = function(){
-			echo('Rebuilding widget map for ' + me.widgets.length);
-			me.widgetMap = [];
-			
-			for(var i = 0; i < me.widgets.length; i++){
-				
-				x = parseInt(me.widgets[i].calc.rx);
-				y = parseInt(me.widgets[i].calc.ry);
-				echo(x + '-' + y)
-				width = parseInt(me.widgets[i].calc.width);
-				height = parseInt(me.widgets[i].calc.height);
-				maxwidth = x+width;
-				maxheight = y+height;
-	
-				for(var ty = y; ty <= maxheight; ty++){
-					for(var tx = x; tx <= maxwidth; tx++){
-						if(tx > 0 && ty > 0){
-							pixel = (ty * me.calc.width) + tx;
-							
-							if(me.widgetMap[pixel] === undefined){
-								me.widgetMap[pixel] = [];
-							}
-							me.widgetMap[pixel].push(me.widgets[i]);
-						}
-					}
-				}
-			}
-			
-		}
-
-		// Recalculate certain variables
-		me.recalculate = function(){
-
-			me.calc.width = me.inst.width;
-			me.calc.height = me.inst.height;
-			me.calc.x = me.inst.x;
-			me.calc.y = me.inst.y;
-			
-			// Calculate the width and height if they're percentages
-			if(me.calc.width.indexOf('%') > 0) me.calc.width = me.parent.width * (parseInt(me.calc.width.replace('%', '')) / 100);
-			if(me.calc.height.indexOf('%') > 0) me.calc.height = me.parent.height * (parseInt(me.calc.height.replace('%', '')) / 100);
-
-			if(me.ischild) {
-				xbase = me.parent.x;
-				ybase = me.parent.y;
-				xextra = 0
-				yextra = 0
-			} else {
-				xbase = 0
-				ybase = 0
-				xextra = me.calc.width / 2;
-				yextra = me.calc.height / 2;
-			}
-
-			// Calculate the x and y if they're percentages
-			if(typeof(me.calc.x) == 'string' && me.calc.x.indexOf('%') > 0) {
-				me.calc.rx = (me.parent.width * (parseInt(me.calc.x.replace('%', '')) / 100)) - xextra;
-				me.calc.x = xbase + me.calc.rx;
-			} else {
-				me.calc.rx = parseInt(me.calc.x);
-				me.calc.x = parseInt(xbase) + me.calc.rx;
-			}
-
-			if(typeof(me.calc.y) == 'string' && me.calc.y.indexOf('%') > 0) {
-				me.calc.ry = (me.parent.height * (parseInt(me.calc.y.replace('%', '')) / 100)) - yextra;
-				me.calc.y = ybase + me.calc.ry;
-			} else {
-				me.calc.ry = parseInt(me.calc.y);
-				me.calc.y = parseInt(ybase) + me.calc.ry;
-			}
-			
-			if(me.ischild) {
-				//echo('Parent location: ' + me.parent.x + ',' + me.parent.y)
-				//echo('This location: ' + me.calc.x + ',' + me.calc.y)
-			}
-			
-			// Store the first calculated settings in ocalc.
-			if(!me.ocalc){
-				me.ocalc = deepCopy(me.calc);
-			}
-			
-			// Set the textblock on first calculation
-			if(!me.textblock) me.textblock = new that.Textblock('15pt Monospace', 'rgb(0,0,0)', me.calc.width, me.calc.height);
-			
-		}
-
-		// Blur the background if it's wanted
-		me.blur = function() {
-			if(me.calc.style.blur && !me.ischild){
-				var result = blurCanvas(that.canvas, me.calc.x, me.calc.y, me.calc.width, me.calc.height, me.inst.blur, me.parent.width,  me.parent.height);
-				that.ctx.drawImage(result.element, result.x, result.y);
-			}
-		}
-
-		// Draw the decorations
-		me.decorate = function() {
-
-			var dialog = me.calc.style;
-			var stack = {};
-
-			// Draw the background rectangle
-			if(dialog.fillstyle) {
-				if(dialog.bottomfill){
-					that.ctx.fillStyle = dialog.bottomfill;
-					that.ctx.fillRect(me.calc.x+1, me.calc.y+1, me.calc.width-2, me.calc.height-2);
-				}
-				that.ctx.fillStyle = dialog.fillstyle;
-				that.ctx.fillRect(me.calc.x+1, me.calc.y+1, me.calc.width-2, me.calc.height-2);
-			}
-			
-			// Draw the border if there is one
-			if(dialog.borderstyle) {
-				that.ctx.strokeStyle = dialog.borderstyle;
-				that.ctx.strokeRect(me.calc.x+1, me.calc.y+1, me.calc.width-2, me.calc.height-2)
-			}
-
-			// Render every layer
-			for(var layer in dialog.layers){
-
-				var d = {
-					width: dialog.layers[layer]['width'],           // The actual width of the item
-					height: dialog.layers[layer]['height'],         // The actual height of the item
-					loopWidth: 0,       // The cumulating width of the items
-					loopHeight: 0,     // The cumulating height of the items
-					useWidth: dialog.layers[layer]['width'],        // The width to use for drawing
-					useHeight: dialog.layers[layer]['height'],      // The height to use for drawing
-					repeatx: 0,
-					repeaty: 0,
-					repeatv: dialog.layers[layer].repeatv,
-					repeath: dialog.layers[layer].repeath,
-					offset: dialog.layers[layer].offset,
-					wantedWidth: dialog.layers[layer]['width'],
-					wantedHeight: dialog.layers[layer]['height']
-				}
-
-				if(d.repeath) d.wantedWidth = me.calc.width;
-				if(d.repeatv) d.wantedHeight = me.calc.height;
-
-				// Calculate the total offset
-				d.offsettop = d.offset[0];
-				d.offsetright = d.offset[1];
-				d.offsetbottom = d.offset[2];
-				d.offsetleft = d.offset[3];
-
-				if(dialog.layers[layer].stackw !== undefined) d.offsetleft += stack[dialog.layers[layer].stackw]['width'];
-				if(dialog.layers[layer].stackh !== undefined) d.offsettop += stack[dialog.layers[layer].stackh]['height'];
-
-				// Recalculate the wanted sized
-				d.wantedWidth = d.wantedWidth - (d.offsetleft + d.offsetright);
-				d.wantedHeight = d.wantedHeight - (d.offsettop + d.offsetbottom);
-
-				do {
-
-					todo = 0;
-
-					dx = me.calc.x + (d.repeatx * d.width) + d.offsetleft;
-					dy = me.calc.y + (d.repeaty * d.height) + d.offsettop;
-
-					that.ctx.drawImage(                // Draw to the buffer
-						 that.images[dialog['tileset']]['image'],       // The image to use
-						 dialog.layers[layer]['sx'],               // The source x on the image
-						 dialog.layers[layer]['sy'],               // The source y on the image
-						 d.useWidth,             // The source width
-						 d.useHeight,            // The source height
-						 dx,
-						 dy,
-						 d.useWidth,
-						 d.useHeight
-					);
-
-					if(d.repeatx == 0) d.loopWidth = d.useWidth;
-
-					if(dialog.layers[layer].repeath) {
-						d.wantedWidth -= d.useWidth;
-						if(d.repeatx > 0) d.loopWidth += d.useWidth;
-						d.repeatx++;
-						if(d.wantedWidth < d.useWidth) d.useWidth = d.wantedWidth;
-						todo += d.wantedWidth;
-					}
-
-					if(d.repeaty == 0) d.loopHeight = d.useHeight;
-
-					if(dialog.layers[layer].repeatv) {
-
-						d.wantedHeight -= d.useHeight;
-						if(d.repeaty > 0) d.loopHeight += d.useHeight;
-						d.repeaty++;
-						if(d.wantedHeight < d.useHeight) d.useHeight = d.wantedHeight;
-						todo += d.wantedHeight;
-					}
-
-				}while(todo > 0);
-
-				if(dialog.layers[layer].stackw !== undefined) {
-					d.loopWidth += stack[dialog.layers[layer].stackw]['width'];
-				}
-
-				if(dialog.layers[layer].stackh !== undefined) {
-					d.loopHeight += stack[dialog.layers[layer].stackh]['height'];
-				}
-
-				// We'll store how much space everything takes in here, needed for stacks
-				stack[layer] = {'width': d.loopWidth, 'height': d.loopHeight};
-
-			}
-
-		}
-		
-		/**
-		 *  Get the widget object
-		 *  @param	x		{int}
-		 *  @param	y		{int}
-		 *  @param click	{bool}
-		 *  @returns	{object|boolean}		The object we've clicked, or false if there's nothing there
-		 */
-		me.getWidget = function(x, y, click){
-			
-			var returnObject = false;
-			var pixel = (y * me.calc.width) + x;
-			
-			if(me.widgetMap[pixel] !== undefined) {
-				returnObject = me.widgetMap[pixel][0];
-				
-				if(click && returnObject){
-					// Calculate where we clicked the object
-					returnObject.calc.clickedX = x - returnObject.calc.rx;
-					returnObject.calc.clickedY = y - returnObject.calc.ry;
-				}
-			}
-			
-			return returnObject;
-		}
-		
-		me.event = {};
-		
-		/**
-		 * What to do on a mousemove
-		 *  @param	x		{int}
-		 *  @param	y		{int}
-		 */
-		me.event.mousemove = function(x, y){
-			
-			me.mouse.x = x - me.calc.rx;
-			me.mouse.y = y - me.calc.ry;
-			me.mouse.pixel = (me.mouse.y * me.calc.width) + me.mouse.x;
-			
-
-			// Set the dialog window the mouse used to be over
-			me.mouse.overexitDialog = me.mouse.overDialog;
-			
-			// Get the dialog window the mouse is over
-			me.mouse.overDialog = me.getWidget(me.mouse.x, me.mouse.y);
-			
-
-			if(!me.ischild){ // This never gets executed in a child widget, only the top parent
-				if(me.widgetMap[me.mouse.pixel] !== undefined) {
-					me.widgetMap[me.mouse.pixel][0].event.mousemove(me.mouse.x, me.mouse.y);
-				} else {
-					if(that.mouse.down && !me.mouse.dialogDown) that.moveDialog(that.mouse.dialogDown, that.mouse.x, that.mouse.y);
-				}
-				
-				if(me.mouse.overexitDialog !== me.mouse.overDialog) {
-					if(me.mouse.overexitDialog) me.mouse.overexitDialog.event.hoverlost();
-					if(me.mouse.overDialog) me.mouse.overDialog.event.hover();
-				}
-				
-				
-				
-			} else {
-				// This only gets executed in a widget inside a parent
-				
-			}
-
-			
-		}
-		
-		me.event.hoverlost = function() {
-			if(!me.focus) {
-				me.calc.style.fillstyle = me.ocalc.style.fillstyle;
-				that.draw();
-			} else {
-				
-			}
-		}
-		
-		me.event.hover = function() {
-			if(!me.focus){
-				me.calc.style.fillstyle = 'rgba(255,0,0, 0.5)';
-				that.draw();
-			} else {
-				
-			}
-		}
-		
-		me.event.focuslost = function() {
-			
-			// Restore my old style
-			me.calc.style.fillstyle = me.ocalc.style.fillstyle;
-			
-			// Take away my focus status
-			me.focus = false;
-			
-			// Reset the focusWidget
-			that.focusWidget = false;
-			
-			// Send the focuslost signal to my widget that has focus
-			if(me.focusWidget) me.focusWidget.event.focuslost();
-			
-			that.draw();
-		}
-		
-		me.event.focus = function() {
-			
-			if(!me.focus){ // If we didn't have focus before
-				me.calc.style.fillstyle = 'rgba(0,200,0, 0.6)';
-				me.focus = true;
-				
-				// Only 1 thing can ever have focus, set that
-				that.focusWidget = me;
-			}
-			
-			that.draw();
-		}
-		
-		me.event.mousedown = function(x, y){
-			me.mouse.downx = x - me.calc.rx;
-			me.mouse.downy = y - me.calc.ry;
-			me.mouse.downpixel = (me.mouse.downy * me.calc.width) + me.mouse.downx;
-			
-			me.mouse.up = false;
-			me.mouse.down = true;
-			me.mouse.dialogDown = me.getWidget(me.mouse.downx, me.mouse.downy);
-			if(me.mouse.dialogDown) me.mouse.dialogDown.event.mousedown(me.mouse.downx, me.mouse.downy);
-			
-		}
-		
-		me.event.mouseup = function(x, y){
-			
-			// Calculate the relative positions of the up clicks
-			me.mouse.upx = x - me.calc.rx;
-			me.mouse.upy = y - me.calc.ry;
-			me.mouse.uppixel = (me.mouse.upy * me.calc.width) + me.mouse.upx;
-			
-			// Store the previous focused dialog
-			that.focusexitDialog = that.focusDialog;
-			
-			// If this isn't a child, make me the curent dialog
-			if(!me.ischild) that.focusDialog = me;
-			
-			// If the previous focussed dialog is different from the current
-			// focussed dialog, send the focuslost event
-			if(that.focusexitDialog != that.focusDialog){
-				if(that.focusexitDialog) that.focusexitDialog.event.focuslost();
-			}
-			
-			// Whatever I am, give me focus
-			me.event.focus();
-			
-			// Now for our children widgets
-			// Store our previous focused widget
-			me.focusexitWidget = me.focusWidget
-			
-			// Get the widget we clicked on now
-			me.focusWidget = me.getWidget(me.mouse.upx, me.mouse.upy);
-			
-			// If they're different, switch the focus
-			if(me.focusexitWidget != me.focusWidget){
-				
-				if(me.focusexitWidget) me.focusexitWidget.event.focuslost();
-			
-				// Send it the focus signal, too
-				if(me.focusWidget) me.focusWidget.event.focus();
-				
-			}
-			
-			me.mouse.up = true;
-			me.mouse.down = false;
-			me.mouse.dialogUp = me.getWidget(me.mouse.upx, me.mouse.upy);
-			if(me.mouse.dialogUp) me.mouse.dialogUp.event.mouseup(me.mouse.upx, me.mouse.upy);
-
-		}
-		
-		me.event.keypress = function(e){	
-			me.textblock.keypress(e);
-			echo(me.textblock.value);
-			that.draw();
-		}
-		
-		// Only the top dialog should rebuild this
-		if(!me.ischild) me.rebuildMap();
-		
-		// Calculate everything a first time
-		me.recalculate();
-		
-
-	}
 
 	/**
 	 *  Get the dialog object by searching through the layers
@@ -890,7 +324,7 @@ var Duk = function(canvasId, url, callback){
 	 *  @param click	{bool}
 	 *  @returns	{object|boolean}		The layer we've clicked, or false if there's nothing there
 	 */
-	that.getDialogFromLayers = function(x, y, click){
+	this.getDialogFromLayers = function(x, y, click){
 
 		// Declarations
 		var v = openDialogs;     // A by-reference link to the current visible hud layers
@@ -934,7 +368,7 @@ var Duk = function(canvasId, url, callback){
 	 *  @param click	{bool}
 	 *  @returns	{object|boolean}		The layer we've clicked, or false if there's nothing there
 	 */
-	that.getDialog = function(x, y, click){
+	this.getDialog = function(x, y, click){
 		
 		var returnObject = false;
 		var pixel = (y * that.width) + x;
@@ -956,7 +390,7 @@ var Duk = function(canvasId, url, callback){
 	 * Move a window
 	 * @param dialogObject {object}
 	 */
-	that.moveDialog = function(dialogObject, x, y){
+	this.moveDialog = function(dialogObject, x, y){
 
 		if(typeof(dialogObject) == 'object') {
 			if(dialogObject.inst.moveable) {
@@ -1066,9 +500,33 @@ var Duk = function(canvasId, url, callback){
 	});
 
 	// Start downloading needed files, and execute the callback when finished
-	that.getBlueprint(url, callback);
+	this.getBlueprint(url, callback);
 	
 };
+
+/**
+ * Creates a new root dialog window.
+ * @param {string} arg1 An argument that makes this more interesting.
+ * @return {string} Some return value.
+ */
+Duk.Manager.prototype.openRoot = function(dimensions){
+	var newRoot = new Widget(dimensions, null, this.me);
+	this.roots.unshift(newRoot);
+    
+	this.me.draw();
+	this.me.rebuildMap();
+	return newRoot;
+}
+
+/**
+ * Draw all open dialog windows
+ */
+Duk.Manager.prototype.draw = function(){
+	this.me.ctx.clearRect(0,0,this.me.width, this.me.height);
+	for(var i = 0; i < this.roots.length; i++){
+		this.roots[i].draw();
+	}
+}
 
 echoOutput = $('#output');
 
@@ -1352,4 +810,622 @@ var key = {
     'Coma': 188,
     'Slash': 191,
     'Backslash': 220
+}
+
+/**
+* A widget class
+* @classDescription	Create a new widget
+* @param   {object|undefined}          parameters          An object with extra parameters
+* @param   {string|boolean|undefined}  windowStyle         The style to use, or false
+* @param   {int|string|undefined}      x                   The wanted starting x position of the widget
+* @param   {int|string|undefined}      y                   The wanted starting y position of the widget
+* @param   {int|string}                width               The wanted width of the widget
+* @param   {int|string}                height              The wanted height of the widget
+* @return	{Duk.Widget}				Returns the new Widget object
+* @type	{Object}
+* @constructor
+*/
+var Widget = function(parameters, windowStyles, that, x, y, width, height) {
+//var Widget = function(parameters, root, style, parent) {
+    //var Widget = function(parameters, windowStyles, that, x, y, width, height) {
+    
+   /**
+	* A reference to this function
+	* @type this
+	*/
+   var me = this;
+		   
+   this.ischild = parameters.widget ? true : false;
+
+   /**
+	* The instructions by which the dimensions will be calculated
+	* @type object
+	*/
+   this.inst = {};
+		   
+   /**
+	* The calculations of the dimensions (based on this.inst instructions
+	*/
+   this.calc = {};
+		   
+   /**
+	* The z-layer of this widget. Smaller is higher
+	* @type number
+	*/
+   this.z = 0;
+		   
+   this.ztime = now();     // When the z-layer was last changed
+   this.type = parameters.type;
+		   
+   
+   var z = {};
+
+   /**
+	* Some test
+	* @type number
+	*/
+   z.test = 1;
+
+
+   //me.parent = Duk.Widget();
+   
+   /**
+	* @type {Widget}
+	*/
+   this.parent = {};
+   
+   /**
+	* @type {Duk.Widget}
+	*/
+   //this.test = that.Widget();
+   
+   
+   
+   /*
+	* @see Widget
+	*/
+   this.www = {};
+   
+   
+		   
+   if(parameters.widget){
+	   this.ischild = true;
+	   this.parent = parameters.parent;
+   } else {
+	   this.ischild = false;
+	   this.parent.width = that.width;
+	   this.parent.height = that.height;
+   }
+
+   this.echo = function(message){
+	   echo(' DIALOG says: ' + message);
+   }
+   
+   this.widgets = [];
+   
+   // Test
+   this.value = '';
+   this.textblock = false;	// Store the textblock in here after the first calculation
+
+   // Get the basic instructions from the parameters if they exist there
+   this.inst.x = parameters.x ? parameters.x : x;
+   this.inst.y = parameters.y ? parameters.y : y;
+   this.inst.width = parameters.width ? parameters.width : width;
+   this.inst.height = parameters.height ? parameters.height : height;
+   this.inst.style = parameters.style ? parameters.style : windowStyles;
+   this.inst.blur = parameters.blur ? parameters.blur : 4;
+
+   // Calculated info
+   this.calc.style = {};
+   this.calc.width = this.inst.width;
+   this.calc.height = this.inst.height;
+   this.calc.x = this.inst.x;
+   this.calc.y = this.inst.y;
+   this.calc.clickedX = 0;
+   this.calc.clickedY = 0;
+   this.ocalc = false;
+   
+   // Relative positions to the parent
+   this.calc.rx = 0;
+   this.calc.ry = 0;
+   
+   this.focus = false;
+   this.focusWidget = false;			// The child widget that has focus will be stored here
+   this.focusexitWidget = false;		// The previous child widget will be stored here
+   
+   // Mouse position RELATIVE to the dialog.
+   this.mouse = {}
+   this.mouse.x = 0;
+   this.mouse.y = 0;
+   this.mouse.pixel = 0;
+   this.mouse.downx = 0;
+   this.mouse.downy = 0;
+   this.mouse.downpixel = 0;
+   this.mouse.upx = 0;
+   this.mouse.upy = 0;
+   this.mouse.uppixel = 0;
+   this.mouse.down = false;
+   this.mouse.up = true;
+   
+   this.mouse.overDialog = false;
+   this.mouse.overexitDialog = false;
+   this.mouse.dialogDown = false;
+   this.mouse.dialogUp = false;
+   
+   this.mouse.focusDialog = false;
+   this.mouse.focusexitDialog = false;
+   
+   this.widgetMap = [];
+
+   // Store the windowStyles
+   if(typeof(this.inst.style) == "array") {
+	   for(var style in this.inst.style){
+		   if(that.blueprint.styles[this.inst.style[style]] !== undefined) merge(this.calc.style, that.blueprint.styles[this.inst.style[style]]);
+	   }
+   } else {
+	   this.calc.style = that.blueprint.styles[this.inst.style] !== undefined ? deepCopy(that.blueprint.styles[this.inst.style]) : false;
+   }
+
+   // A dialog window is always clickable, unless otherwise defined in the parameters
+   this.inst.clickable = parameters.clickable === undefined ? true : parameters.clickable;
+
+   // A dialog window is always moveable, unless otherwise defined in the parameters
+   this.inst.moveable = parameters.moveable === undefined ? true : parameters.moveable;
+   
+   // Adding a dialog widget
+   this.addWidget = function(parameters) {
+	   deep = deepCopy(merge(parameters, {'widget': true}));
+	   deep['parent'] = me.calc;
+	   
+	   //var temp = new that.Widget(deep);
+	   var temp = new Widget(deep, null, that);
+	   me.widgets.unshift(temp);
+	   me.rebuildMap();
+	   that.draw();
+
+   }
+
+   /**
+	* Draw this widget
+	* @method
+	* @memberOf Widget
+	*/
+   this.draw = function() {
+	   me.recalculate();
+	   me.blur();
+	   me.decorate();
+	   me.populate();
+	   
+	   // Draw widgets
+	   for(var i = 0; i < me.widgets.length; i++){
+		   me.widgets[i].draw();
+	   }
+   }
+   
+   /**
+	* Populate the widgets with values and such
+	*/
+   this.populate = function() {
+	   if(me.type == 'input' && me.textblock) {
+		   bx = parseInt(me.calc.x) + 4;
+		   by = parseInt(me.calc.y) + 4;
+		   
+		   that.ctx.fillStyle = 'rgb(0,0,0)';
+		   that.ctx.font = "15pt 'Lucida Console', Monaco, monospace";
+		   that.ctx.textBaseline = "top";
+
+		   that.ctx.fillText(me.textblock.view, bx, by);
+		   
+		   that.ctx.beginPath();
+		   that.ctx.moveTo(bx + me.textblock.cursorpixel, by);
+		   that.ctx.lineTo(bx + me.textblock.cursorpixel, by + me.textblock.height - 4);
+		   that.ctx.closePath();
+		   that.ctx.stroke();
+		   
+
+	   }
+   }
+   
+   /**
+	* Build the widgetMap. Should only be run at creation since widget's
+	* don't normally change position INSIDE the dialog
+	*/
+   this.rebuildMap = function(){
+	   echo('Rebuilding widget map for ' + me.widgets.length);
+	   me.widgetMap = [];
+	   
+	   for(var i = 0; i < me.widgets.length; i++){
+		   
+		   x = parseInt(me.widgets[i].calc.rx);
+		   y = parseInt(me.widgets[i].calc.ry);
+		   echo(x + '-' + y)
+		   width = parseInt(me.widgets[i].calc.width);
+		   height = parseInt(me.widgets[i].calc.height);
+		   maxwidth = x+width;
+		   maxheight = y+height;
+
+		   for(var ty = y; ty <= maxheight; ty++){
+			   for(var tx = x; tx <= maxwidth; tx++){
+				   if(tx > 0 && ty > 0){
+					   pixel = (ty * me.calc.width) + tx;
+					   
+					   if(me.widgetMap[pixel] === undefined){
+						   me.widgetMap[pixel] = [];
+					   }
+					   me.widgetMap[pixel].push(me.widgets[i]);
+				   }
+			   }
+		   }
+	   }
+	   
+   }
+
+   // Recalculate certain variables
+   this.recalculate = function(){
+
+	   me.calc.width = me.inst.width;
+	   me.calc.height = me.inst.height;
+	   me.calc.x = me.inst.x;
+	   me.calc.y = me.inst.y;
+	   
+	   // Calculate the width and height if they're percentages
+	   if(me.calc.width.indexOf('%') > 0) me.calc.width = me.parent.width * (parseInt(me.calc.width.replace('%', '')) / 100);
+	   if(me.calc.height.indexOf('%') > 0) me.calc.height = me.parent.height * (parseInt(me.calc.height.replace('%', '')) / 100);
+
+	   if(me.ischild) {
+		   xbase = me.parent.x;
+		   ybase = me.parent.y;
+		   xextra = 0
+		   yextra = 0
+	   } else {
+		   xbase = 0
+		   ybase = 0
+		   xextra = me.calc.width / 2;
+		   yextra = me.calc.height / 2;
+	   }
+
+	   // Calculate the x and y if they're percentages
+	   if(typeof(me.calc.x) == 'string' && me.calc.x.indexOf('%') > 0) {
+		   me.calc.rx = (me.parent.width * (parseInt(me.calc.x.replace('%', '')) / 100)) - xextra;
+		   me.calc.x = xbase + me.calc.rx;
+	   } else {
+		   me.calc.rx = parseInt(me.calc.x);
+		   me.calc.x = parseInt(xbase) + me.calc.rx;
+	   }
+
+	   if(typeof(me.calc.y) == 'string' && me.calc.y.indexOf('%') > 0) {
+		   me.calc.ry = (me.parent.height * (parseInt(me.calc.y.replace('%', '')) / 100)) - yextra;
+		   me.calc.y = ybase + me.calc.ry;
+	   } else {
+		   me.calc.ry = parseInt(me.calc.y);
+		   me.calc.y = parseInt(ybase) + me.calc.ry;
+	   }
+	   
+	   if(me.ischild) {
+		   //echo('Parent location: ' + me.parent.x + ',' + me.parent.y)
+		   //echo('This location: ' + me.calc.x + ',' + me.calc.y)
+	   }
+	   
+	   // Store the first calculated settings in ocalc.
+	   if(!me.ocalc){
+		   me.ocalc = deepCopy(me.calc);
+	   }
+	   
+	   // Set the textblock on first calculation
+	   if(!me.textblock) me.textblock = new that.Textblock('15pt Monospace', 'rgb(0,0,0)', me.calc.width, me.calc.height);
+	   
+   }
+
+   // Blur the background if it's wanted
+   this.blur = function() {
+	   if(me.calc.style.blur && !me.ischild){
+		   var result = blurCanvas(that.canvas, me.calc.x, me.calc.y, me.calc.width, me.calc.height, me.inst.blur, me.parent.width,  me.parent.height);
+		   that.ctx.drawImage(result.element, result.x, result.y);
+	   }
+   }
+
+   // Draw the decorations
+   this.decorate = function() {
+
+	   var dialog = me.calc.style;
+	   var stack = {};
+
+	   // Draw the background rectangle
+	   if(dialog.fillstyle) {
+		   if(dialog.bottomfill){
+			   that.ctx.fillStyle = dialog.bottomfill;
+			   that.ctx.fillRect(me.calc.x+1, me.calc.y+1, me.calc.width-2, me.calc.height-2);
+		   }
+		   that.ctx.fillStyle = dialog.fillstyle;
+		   that.ctx.fillRect(me.calc.x+1, me.calc.y+1, me.calc.width-2, me.calc.height-2);
+	   }
+	   
+	   // Draw the border if there is one
+	   if(dialog.borderstyle) {
+		   that.ctx.strokeStyle = dialog.borderstyle;
+		   that.ctx.strokeRect(me.calc.x+1, me.calc.y+1, me.calc.width-2, me.calc.height-2)
+	   }
+
+	   // Render every layer
+	   for(var layer in dialog.layers){
+
+		   var d = {
+			   width: dialog.layers[layer]['width'],           // The actual width of the item
+			   height: dialog.layers[layer]['height'],         // The actual height of the item
+			   loopWidth: 0,       // The cumulating width of the items
+			   loopHeight: 0,     // The cumulating height of the items
+			   useWidth: dialog.layers[layer]['width'],        // The width to use for drawing
+			   useHeight: dialog.layers[layer]['height'],      // The height to use for drawing
+			   repeatx: 0,
+			   repeaty: 0,
+			   repeatv: dialog.layers[layer].repeatv,
+			   repeath: dialog.layers[layer].repeath,
+			   offset: dialog.layers[layer].offset,
+			   wantedWidth: dialog.layers[layer]['width'],
+			   wantedHeight: dialog.layers[layer]['height']
+		   }
+
+		   if(d.repeath) d.wantedWidth = me.calc.width;
+		   if(d.repeatv) d.wantedHeight = me.calc.height;
+
+		   // Calculate the total offset
+		   d.offsettop = d.offset[0];
+		   d.offsetright = d.offset[1];
+		   d.offsetbottom = d.offset[2];
+		   d.offsetleft = d.offset[3];
+
+		   if(dialog.layers[layer].stackw !== undefined) d.offsetleft += stack[dialog.layers[layer].stackw]['width'];
+		   if(dialog.layers[layer].stackh !== undefined) d.offsettop += stack[dialog.layers[layer].stackh]['height'];
+
+		   // Recalculate the wanted sized
+		   d.wantedWidth = d.wantedWidth - (d.offsetleft + d.offsetright);
+		   d.wantedHeight = d.wantedHeight - (d.offsettop + d.offsetbottom);
+
+		   do {
+
+			   todo = 0;
+
+			   dx = me.calc.x + (d.repeatx * d.width) + d.offsetleft;
+			   dy = me.calc.y + (d.repeaty * d.height) + d.offsettop;
+
+			   that.ctx.drawImage(                // Draw to the buffer
+					that.images[dialog['tileset']]['image'],       // The image to use
+					dialog.layers[layer]['sx'],               // The source x on the image
+					dialog.layers[layer]['sy'],               // The source y on the image
+					d.useWidth,             // The source width
+					d.useHeight,            // The source height
+					dx,
+					dy,
+					d.useWidth,
+					d.useHeight
+			   );
+
+			   if(d.repeatx == 0) d.loopWidth = d.useWidth;
+
+			   if(dialog.layers[layer].repeath) {
+				   d.wantedWidth -= d.useWidth;
+				   if(d.repeatx > 0) d.loopWidth += d.useWidth;
+				   d.repeatx++;
+				   if(d.wantedWidth < d.useWidth) d.useWidth = d.wantedWidth;
+				   todo += d.wantedWidth;
+			   }
+
+			   if(d.repeaty == 0) d.loopHeight = d.useHeight;
+
+			   if(dialog.layers[layer].repeatv) {
+
+				   d.wantedHeight -= d.useHeight;
+				   if(d.repeaty > 0) d.loopHeight += d.useHeight;
+				   d.repeaty++;
+				   if(d.wantedHeight < d.useHeight) d.useHeight = d.wantedHeight;
+				   todo += d.wantedHeight;
+			   }
+
+		   }while(todo > 0);
+
+		   if(dialog.layers[layer].stackw !== undefined) {
+			   d.loopWidth += stack[dialog.layers[layer].stackw]['width'];
+		   }
+
+		   if(dialog.layers[layer].stackh !== undefined) {
+			   d.loopHeight += stack[dialog.layers[layer].stackh]['height'];
+		   }
+
+		   // We'll store how much space everything takes in here, needed for stacks
+		   stack[layer] = {'width': d.loopWidth, 'height': d.loopHeight};
+
+	   }
+
+   }
+   
+   /**
+	*  Get the widget object
+	*  @param	x		{int}
+	*  @param	y		{int}
+	*  @param click	{bool}
+	*  @returns	{object|boolean}		The object we've clicked, or false if there's nothing there
+	*/
+   this.getWidget = function(x, y, click){
+	   
+	   var returnObject = false;
+	   var pixel = (y * me.calc.width) + x;
+	   
+	   if(me.widgetMap[pixel] !== undefined) {
+		   returnObject = me.widgetMap[pixel][0];
+		   
+		   if(click && returnObject){
+			   // Calculate where we clicked the object
+			   returnObject.calc.clickedX = x - returnObject.calc.rx;
+			   returnObject.calc.clickedY = y - returnObject.calc.ry;
+		   }
+	   }
+	   
+	   return returnObject;
+   }
+   
+   /**
+	* @memberOf Widget
+	*/
+   this.event = {};
+   
+   /**
+	* What to do on a mousemove
+	*  @param	x		{int}
+	*  @param	y		{int}
+	*/
+   this.event.mousemove = function(x, y){
+	   
+	   me.mouse.x = x - me.calc.rx;
+	   me.mouse.y = y - me.calc.ry;
+	   me.mouse.pixel = (me.mouse.y * me.calc.width) + me.mouse.x;
+	   
+
+	   // Set the dialog window the mouse used to be over
+	   me.mouse.overexitDialog = me.mouse.overDialog;
+	   
+	   // Get the dialog window the mouse is over
+	   me.mouse.overDialog = me.getWidget(me.mouse.x, me.mouse.y);
+	   
+
+	   if(!me.ischild){ // This never gets executed in a child widget, only the top parent
+		   if(me.widgetMap[me.mouse.pixel] !== undefined) {
+			   me.widgetMap[me.mouse.pixel][0].event.mousemove(me.mouse.x, me.mouse.y);
+		   } else {
+			   if(that.mouse.down && !me.mouse.dialogDown) that.moveDialog(that.mouse.dialogDown, that.mouse.x, that.mouse.y);
+		   }
+		   
+		   if(me.mouse.overexitDialog !== me.mouse.overDialog) {
+			   if(me.mouse.overexitDialog) me.mouse.overexitDialog.event.hoverlost();
+			   if(me.mouse.overDialog) me.mouse.overDialog.event.hover();
+		   }
+		   
+		   
+		   
+	   } else {
+		   // This only gets executed in a widget inside a parent
+		   
+	   }
+
+	   
+   }
+   
+   this.event.hoverlost = function() {
+	   if(!me.focus) {
+		   me.calc.style.fillstyle = me.ocalc.style.fillstyle;
+		   that.draw();
+	   } else {
+		   
+	   }
+   }
+   
+   this.event.hover = function() {
+	   if(!me.focus){
+		   me.calc.style.fillstyle = 'rgba(255,0,0, 0.5)';
+		   that.draw();
+	   } else {
+		   
+	   }
+   }
+   
+   this.event.focuslost = function() {
+	   
+	   // Restore my old style
+	   me.calc.style.fillstyle = me.ocalc.style.fillstyle;
+	   
+	   // Take away my focus status
+	   me.focus = false;
+	   
+	   // Reset the focusWidget
+	   that.focusWidget = false;
+	   
+	   // Send the focuslost signal to my widget that has focus
+	   if(me.focusWidget) me.focusWidget.event.focuslost();
+	   
+	   that.draw();
+   }
+   
+   this.event.focus = function() {
+	   
+	   if(!me.focus){ // If we didn't have focus before
+		   me.calc.style.fillstyle = 'rgba(0,200,0, 0.6)';
+		   me.focus = true;
+		   
+		   // Only 1 thing can ever have focus, set that
+		   that.focusWidget = me;
+	   }
+	   
+	   that.draw();
+   }
+   
+   this.event.mousedown = function(x, y){
+	   me.mouse.downx = x - me.calc.rx;
+	   me.mouse.downy = y - me.calc.ry;
+	   me.mouse.downpixel = (me.mouse.downy * me.calc.width) + me.mouse.downx;
+	   
+	   me.mouse.up = false;
+	   me.mouse.down = true;
+	   me.mouse.dialogDown = me.getWidget(me.mouse.downx, me.mouse.downy);
+	   if(me.mouse.dialogDown) me.mouse.dialogDown.event.mousedown(me.mouse.downx, me.mouse.downy);
+	   
+   }
+   
+   this.event.mouseup = function(x, y){
+	   
+	   // Calculate the relative positions of the up clicks
+	   me.mouse.upx = x - me.calc.rx;
+	   me.mouse.upy = y - me.calc.ry;
+	   me.mouse.uppixel = (me.mouse.upy * me.calc.width) + me.mouse.upx;
+	   
+	   // Store the previous focused dialog
+	   that.focusexitDialog = that.focusDialog;
+	   
+	   // If this isn't a child, make me the curent dialog
+	   if(!me.ischild) that.focusDialog = me;
+	   
+	   // If the previous focussed dialog is different from the current
+	   // focussed dialog, send the focuslost event
+	   if(that.focusexitDialog != that.focusDialog){
+		   if(that.focusexitDialog) that.focusexitDialog.event.focuslost();
+	   }
+	   
+	   // Whatever I am, give me focus
+	   me.event.focus();
+	   
+	   // Now for our children widgets
+	   // Store our previous focused widget
+	   me.focusexitWidget = me.focusWidget
+	   
+	   // Get the widget we clicked on now
+	   me.focusWidget = me.getWidget(me.mouse.upx, me.mouse.upy);
+	   
+	   // If they're different, switch the focus
+	   if(me.focusexitWidget != me.focusWidget){
+		   
+		   if(me.focusexitWidget) me.focusexitWidget.event.focuslost();
+	   
+		   // Send it the focus signal, too
+		   if(me.focusWidget) me.focusWidget.event.focus();
+		   
+	   }
+	   
+	   me.mouse.up = true;
+	   me.mouse.down = false;
+	   me.mouse.dialogUp = me.getWidget(me.mouse.upx, me.mouse.upy);
+	   if(me.mouse.dialogUp) me.mouse.dialogUp.event.mouseup(me.mouse.upx, me.mouse.upy);
+
+   }
+   
+   this.event.keypress = function(e){	
+	   me.textblock.keypress(e);
+	   echo(me.textblock.value);
+	   that.draw();
+   }
+   
+   // Only the top dialog should rebuild this
+   if(!this.ischild) this.rebuildMap();
+   
+   // Calculate everything a first time
+   this.recalculate();
+   
+
 }
