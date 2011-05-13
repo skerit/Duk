@@ -1,0 +1,74 @@
+{
+	"images": [
+		{
+			"name": "bordersmall",
+			"url": "images/bordersmall.png"}
+	],
+	"styles": {
+		"transparant": {
+			"fillstyle": false,
+			"blur": 0
+		},
+		"widget": {
+			"fillstyle": "rgba(255, 255, 255, 1)",
+			"bottomfill": "rgb(255,255,255)",
+			"borderstyle": "rgba(0,0,0)"
+		},
+		"bordersmall": {
+			"tileset": "bordersmall",
+			"layers": {"topleft": {"sx": 2, "sy": 2, "width": 21, "height": 21, "repeatv": false, "repeath": false, "offset": [0,0,0,0]},
+						"topmiddle": {"sx": 37, "sy": 2, "width": 20, "height": 11, "repeatv": false, "repeath": true, "offset": [0,21,0,0], "stackw": "topleft"},
+						"topright": {"sx": 71, "sy": 2, "width": 21, "height": 21,  "repeatv": false, "repeath": false, "offset": [0,0,0,0], "stackw": "topmiddle"},
+						"left": {"sx": 2, "sy": 41, "width": 11, "height": 20, "repeatv": true, "repeath": false, "offset": [0,0,21,0], "stackh": "topleft"},
+						"right": {"sx": 71, "sy": 41, "width": 21, "height": 20, "repeatv": true, "repeath": false, "offset": [0,0,21,0], "stackw": "topmiddle", "stackh": "topleft"},
+						"bottomleft": {"sx": 2, "sy": 73, "width": 21, "height": 21, "repeatv": false, "repeath": false, "offset": [0,0,0,0], "stackh": "left"},
+						"bottommiddle": {"sx": 40, "sy": 73, "width": 20, "height": 20, "repeatv": false, "repeath": true, "offset": [0,21,0,0], "stackw": "topleft", "stackh": "left"},
+						"bottomright": {"sx": 71, "sy": 73, "width": 21, "height": 20, "repeatv": false, "repeath": false, "offset": [0,0,0,0], "stackw": "topmiddle", "stackh": "left"}
+			}   ,
+			"fillstyle": "rgba(20, 20, 20, 0.4)",
+			"blur": 5
+			}
+		},
+	"widgets": {
+		"input": {
+			"style": "widget",
+			"type": "input",
+			"width": "80%",
+			"height": "30",
+			"x": "10%",
+			"y": "15",
+			"moveable": true,
+			"clickable": true
+		}
+	},
+	"screens": {
+		"test": {
+			"style": "bordersmall",
+			"width": "50%",
+			"height": "40%",
+			"x": "20%",
+			"y": "10%",
+			"clickable": true,
+			"moveable": true
+		},
+		"hud": {
+			"dialogset": "transparant",
+			"width": "100%",
+			"height": "100%",
+			"clickable": false,
+			"moveable": true
+		},
+		"login": {
+			"dialogset": "bordersmall",
+			"width": "30%",
+			"height": "30%",
+			"clickable": true,
+			"moveable": true,
+			"content": [
+				{"widget": "textbox", "name": "username", "x": 10, "y": 10, "width": 120, "height": 15, "value": "Drag me!", "cursor": 8},
+				{"widget": "textbox", "name": "test", "x": 10, "y": 26, "width": 120, "height": 15, "value": "Type here", "cursor": 9},
+				{"widget": "button", "name": "clickme", "x": 50, "y": 60, "width": 3, "height": 3}
+				]
+			}
+		}
+}

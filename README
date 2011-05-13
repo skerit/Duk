@@ -1,0 +1,8 @@
+DUK
+===
+
+Duk is a "Window manager" (as you will) for Canvas
+using Javascript.
+
+Originally started as an idea for my Canvas game engine
+"Kiflea", I thought it deserved its own repository.
