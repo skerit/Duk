@@ -12,7 +12,10 @@
 		"widget": {
 			"fillstyle": "rgba(255, 255, 255, 1)",
 			"bottomfill": "rgb(255,255,255)",
-			"borderstyle": "rgba(0,0,0)"
+			"borderstyle": "rgba(0,0,0)",
+			"focusstyle": {
+				"fillstyle": "rgb(150,150,0)"
+			}
 		},
 		"bordersmall": {
 			"tileset": "bordersmall",
@@ -26,6 +29,10 @@
 						"bottomright": {"sx": 71, "sy": 73, "width": 21, "height": 20, "repeatv": false, "repeath": false, "offset": [0,0,0,0], "stackw": "topmiddle", "stackh": "left"}
 			}   ,
 			"fillstyle": "rgba(20, 20, 20, 0.4)",
+			"focusstyle": {
+				"fillstyle": "rgba(100,100,100, 0.7)",
+				"borderstyle": ""
+				},
 			"blur": 5
 			}
 		},

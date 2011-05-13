@@ -1,6 +1,11 @@
 <head>
     <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
+	<script type="text/javascript" src="penseel.js"></script>
     <script type="text/javascript" src="duk.js"></script>
+    <script type="text/javascript" src="duk.instructions.js"></script>
+    <script type="text/javascript" src="types.js"></script>
+    <script type="text/javascript" src="duk.widget.js"></script>
+    <script type="text/javascript" src="duk.mouse.js"></script>
 	<style type="text/css">
 			p {margin: 0}
 			#main {float:left;}
@@ -11,8 +16,8 @@
       var d;
 
       function initialize() {
-		echo('Starting up');
-        d = new Duk('ezel', 'hud.json'); //d = new Duk('ezel', 'hud.json', startDialog);
+		p.echo('Starting up');
+        d = new Duk.Manager('ezel', 'hud.json'); //d = new Duk('ezel', 'hud.json', startDialog);
         d.getBlueprint('hud.json');
 
           var ctx = document.getElementById('ezel').getContext('2d');
@@ -20,12 +25,12 @@
       }
 
         function startDialog(){
-			echo('Opening beginning dialog');
+			p.echo('Opening beginning dialog');
             r = d.openDialog(d.blueprint.screens.test);
         }
 		
 		function newDialog(){
-            r = d.openDialog(d.blueprint.screens.test);
+            r = d.openRoot(d.blueprint.screens.test);
             r.addWidget(d.blueprint.widgets.input)
 		}
 
